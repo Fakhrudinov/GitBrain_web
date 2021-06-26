@@ -63,22 +63,7 @@ namespace ApiHttpGets2File
                 // Ждем, пока все задачи будут готовы
                 await Task.WhenAll(tasks);
 
-                Console.WriteLine("All Task complete, write result to file.");
-                foreach (var respObj in tasks)
-                {
-                    //если в этой таске вернулся результат
-                    if (respObj.Result.title != null)
-                    {
-                        //готовим строку для записи в файл
-                        string dataToFile = 
-                            $"{respObj.Result.userId}\r\n" +
-                            $"{respObj.Result.id}\r\n" +
-                            $"{respObj.Result.title}\r\n" +
-                            $"{respObj.Result.body}\r\n";
-
-                        WriteToFile(dataToFile);
-                    }
-                }               
+                Console.WriteLine("All Task complete!");           
             }
             catch (Exception oce)
             {
@@ -89,8 +74,30 @@ namespace ApiHttpGets2File
                 cts.Dispose();
             }
 
+            //успешные таски запишем в файл
+            Console.WriteLine("Write success posts to file " + filePath);
+            foreach (var task in tasks)
+            {
+                if (task.IsCompletedSuccessfully)
+                {
+                    PrepareDataAndWriteToFile(task);
+                }
+            }
+
             Console.WriteLine("Jobs done.");
             //Console.ReadLine();
+        }
+
+        private static void PrepareDataAndWriteToFile(Task<ResponceObject> respObj)
+        {
+            //готовим строку для записи в файл
+            string dataToFile =
+                $"{respObj.Result.userId}\r\n" +
+                $"{respObj.Result.id}\r\n" +
+                $"{respObj.Result.title}\r\n" +
+                $"{respObj.Result.body}\r\n";
+
+            WriteToFile(dataToFile);
         }
 
         private static void WriteToFile(string dataToFile)
@@ -107,15 +114,16 @@ namespace ApiHttpGets2File
 
         static async Task<ResponceObject> GetRequestWithId(int id)
         {
-            ResponceObject result = new ResponceObject();
-
             try
             {
                 HttpResponseMessage response = await client.GetAsync("https://jsonplaceholder.typicode.com/posts/" + id, cts.Token);
                 response.EnsureSuccessStatusCode();
                 string responseBody = await response.Content.ReadAsStringAsync();
 
-                result = JsonSerializer.Deserialize<ResponceObject>(responseBody);
+                ResponceObject result = JsonSerializer.Deserialize<ResponceObject>(responseBody);
+
+                Console.WriteLine($"Task with id {id} completed.");
+                return result;
             }
             catch (HttpRequestException e)
             {
@@ -123,7 +131,7 @@ namespace ApiHttpGets2File
                 Console.WriteLine("Message :{0} ", e.Message);
             }
 
-            return result;
+            return null;
         }
     }
 }
